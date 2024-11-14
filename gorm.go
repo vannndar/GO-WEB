@@ -53,6 +53,10 @@ func main() {
 	fmt.Printf("Album found: %v\n", alb)
 }
 
+func (Album) TableName() string {
+	return "album" // Use singular form
+}
+
 func createAlbum(album Album) error {
 	result := db.Create(&album)
 	if result.Error != nil {
