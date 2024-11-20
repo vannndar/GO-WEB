@@ -1,114 +1,61 @@
 package main
 
-// import (
-// 	"database/sql"
-// 	"fmt"
-// 	"log"
+import (
+	"net/http"
 
-// 	_ "github.com/jackc/pgx/v5/stdlib" // Driver PostgreSQL
-// )
+	"github.com/gin-gonic/gin"
+)
 
-// var db *sql.DB
+type album struct {
+	ID     string  `json:"id"`
+	Title  string  `json:"title"`
+	Artist string  `json:"artist"`
+	Price  float64 `json:"price"`
+}
 
-// type Album struct {
-// 	ID     int64
-// 	Title  string
-// 	Artist string
-// 	Price  float32
-// }
+var albums = []album{
+	{ID: "1", Title: "Blue Train", Artist: "John Coltrane", Price: 56.99},
+	{ID: "2", Title: "Jeru", Artist: "Gerry Mulligan", Price: 17.99},
+	{ID: "3", Title: "Sarah Vaughan", Artist: "Sarah Vaughan", Price: 39.99},
+}
 
-// func main() {
-// 	// Mendapatkan variabel koneksi dari environment
-// 	dbUser := "kuliah"
-// 	dbPass := "kuliah"
-// 	dbName := "go-web"
+func getAlbums(c *gin.Context) {
+	c.IndentedJSON(http.StatusOK, albums)
+}
 
-// 	// Format DSN untuk PostgreSQL
-// 	dsn := fmt.Sprintf("postgresql://%s:%s@localhost:1500/%s", dbUser, dbPass, dbName)
+func postAlbums(c *gin.Context) {
+	var newAlbum album
 
-// 	// Membuka koneksi ke database
-// 	var err error
-// 	db, err = sql.Open("pgx", dsn)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
+	// Call BindJSON to bind the received JSON to
+	// newAlbum.
+	if err := c.BindJSON(&newAlbum); err != nil {
+		return
+	}
 
-// 	// Tes koneksi
-// 	pingErr := db.Ping()
-// 	if pingErr != nil {
-// 		log.Fatal(pingErr)
-// 	}
-// 	fmt.Println("Connected!")
+	// Add the new album to the slice.
+	albums = append(albums, newAlbum)
+	c.IndentedJSON(http.StatusCreated, newAlbum)
+}
 
-// 	// Query contoh
-// 	albums, err := albumsByArtist("John Coltrane")
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	fmt.Printf("Albums found: %v\n", albums)
+func getAlbumByID(c *gin.Context) {
+	id := c.Param("id")
 
-// 	alb, err := albumByID(2)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	fmt.Printf("Album found: %v\n", alb)
+	// Loop over the list of albums, looking for
+	// an album whose ID value matches the parameter.
+	for _, a := range albums {
+		if a.ID == id {
+			c.IndentedJSON(http.StatusOK, a)
+			return
+		}
+	}
+	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "album not found"})
+}
 
-// 	albID, err := addAlbum(Album{
-// 		Title:  "The Modern Sound of Betty Carter",
-// 		Artist: "Betty Carter",
-// 		Price:  49.99,
-// 	})
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	fmt.Printf("ID of added album: %v\n", albID)
-// }
+func main() {
+	router := gin.Default()
+	router.GET("/albums", getAlbums)
+	router.POST("/albums", postAlbums)
+	router.GET("/albums/:id", getAlbumByID)
 
-// // albumsByArtist queries for albums that have the specified artist name.
-// func albumsByArtist(name string) ([]Album, error) {
-// 	var albums []Album
-
-// 	rows, err := db.Query("SELECT id, title, artist, price FROM album WHERE artist = $1", name)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("albumsByArtist %q: %v", name, err)
-// 	}
-// 	defer rows.Close()
-
-// 	for rows.Next() {
-// 		var alb Album
-// 		if err := rows.Scan(&alb.ID, &alb.Title, &alb.Artist, &alb.Price); err != nil {
-// 			return nil, fmt.Errorf("albumsByArtist %q: %v", name, err)
-// 		}
-// 		albums = append(albums, alb)
-// 	}
-// 	if err := rows.Err(); err != nil {
-// 		return nil, fmt.Errorf("albumsByArtist %q: %v", name, err)
-// 	}
-// 	return albums, nil
-// }
-
-// // albumByID queries for the album with the specified ID.
-// func albumByID(id int64) (Album, error) {
-// 	var alb Album
-
-// 	row := db.QueryRow("SELECT id, title, artist, price FROM album WHERE id = $1", id)
-// 	if err := row.Scan(&alb.ID, &alb.Title, &alb.Artist, &alb.Price); err != nil {
-// 		if err == sql.ErrNoRows {
-// 			return alb, fmt.Errorf("albumByID %d: no such album", id)
-// 		}
-// 		return alb, fmt.Errorf("albumByID %d: %v", id, err)
-// 	}
-// 	return alb, nil
-// }
-
-// // addAlbum adds the specified album to the database,
-// // returning the album ID of the new entry
-// func addAlbum(alb Album) (int64, error) {
-// 	var id int64
-// 	query := "INSERT INTO album (title, artist, price) VALUES ($1, $2, $3) RETURNING id"
-// 	err := db.QueryRow(query, alb.Title, alb.Artist, alb.Price).Scan(&id)
-// 	if err != nil {
-// 		return 0, fmt.Errorf("addAlbum: %v", err)
-// 	}
-// 	return id, nil
-// }
+	router.Run("localhost:8080")
+}

@@ -22,7 +22,7 @@ func main() {
 	dbUser := "kuliah"
 	dbPass := "kuliah"
 	dbName := "go-web"
-	dsn := fmt.Sprintf("host=localhost user=%s password=%s dbname=%s port=1500 sslmode=disable", dbUser, dbPass, dbName)
+	dsn := fmt.Sprintf("postgresql://%s:%s@localhost:1500/%s", dbUser, dbPass, dbName)
 
 	// Membuka koneksi ke database dengan GORM
 	var err error
